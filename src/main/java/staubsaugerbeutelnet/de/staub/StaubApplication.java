@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class StaubApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(StaubApplication.class, args);
 
