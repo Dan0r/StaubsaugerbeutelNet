@@ -2,13 +2,11 @@ import cv2
 import sqlite3
 from easyocr import Reader
 
-# load image and database
-img = '/home/furukawa/programming/ocr/e05-2.jpg'
-con = sqlite3.connect("staubsauger.db")
-cursor = con.cursor()
+# load image
+img = '/home/furukawa/programming/staub/ocr/e05-1.jpg'
+img = cv2.imread(img) 
 
 # find midpoint of image to split columns
-img = cv2.imread(img)
 height, width, channels = img.shape
 x_midpoint = width / 2
 # Midpoint method
@@ -31,9 +29,9 @@ for bbox, text, prob in results:
      else:
         right_column.append((bbox, text, prob))
 
-for bbox, text, prob in left_column, right_column:
-    print(text)
-# Identify Brand Names
+for column in (left_column, right_column):
+    for bbox, text, prob in column:
+        print(text)
 
 # Write into an sQL Database
 
