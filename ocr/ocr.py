@@ -1,14 +1,16 @@
+#!/usr/bin/env python3
+
 import cv2
 import sqlite3
 from easyocr import Reader
 import os
 
-# Function for processing the images. 
-# image_reader will make it loop through the directory with the images. It processes the images one by one.
-# reader will be for the EasyOCR object, to detect the text using its .readtext-method.
-
-# image_directory will be loope
-def get_imagetext(image_directory, reader):
+"""
+The fnction for processing the images. 
+image_reader will make it loop through the directory with the images. It processes the images one by one.
+reader will be for the EasyOCR object, to detect the text using its .readtext-method.
+"""
+def get_imagetext(image, reader):
     try:
         image_processed = cv2.imread(image) 
         if image_processed is None:
@@ -36,27 +38,23 @@ def get_imagetext(image_directory, reader):
 
         # Sort by column. To resemble the structure of the real world text.
         brand_names = []
-        # We can actually detect brand names too, because they contain only uppercase ALPHABETICAL CHARACTERS.
+        # Detect brand names, because they contain only uppercase ALPHABETICAL CHARACTERS.
         for column in (left_column, right_column):
             for bbox, text, prob in column:
                 if text.isupper() & text.isalpha(): 
                     brand_names.append(text)
 
         bag_names = []
-            # Detect names of vacuums
-            for column in (left_column, right_column):
-                for bbox, text, prob in column:
-                # Avoid brand names.
-                    if text not in brand_names:
-                        bag_names.append(text)
-
-                # Pop the box's headline "GEEIGNET FÜR...".
-                bag_names.pop(0)
-
+        # Detect names of vacuums
         for column in (left_column, right_column):
             for bbox, text, prob in column:
-                print(text)
+            # Avoid brand names.
+                if text not in brand_names:
+                    bag_names.append(text)
 
+        # Delete the box's headline "GEEIGNET FÜR...".
+        if bag_names:
+            bag_names.pop(0)
 
         print(f"Finished processing: {image}.")
     except Exception as e:
@@ -65,18 +63,21 @@ def get_imagetext(image_directory, reader):
     # Write data into an SQL-Database
 
 
+def main():
+    """Main function"""
 
+    # Initialise EasyOCR 
+    reader = Reader(['en', 'de'])
 
-# Initialise EasyOCR 
-reader = Reader(['en', 'de'])
+    # load multiple images, that are stored in a directory called "images"
+    # os.walk loads top-to-bottom
+    image_directory = '/home/furukawa/programming/staub/ocr/images/'
 
-# load multiple images, that are stored in a directory called "images"
-# os.walk loads top-to-bottom
-image_directory = '/home/furukawa/programming/staub/ocr/images/'
+    for root, dirs, files in os.walk(image_directory):
+        # OCR the first image, then repeat with the next
+        for name in files:
+            image = os.path.join(root, name)
+            get_imagetext(image, reader)
 
-for root, dirs, files in os.walk(image_directory):
-    # OCR the first image, then repeat with the next
-    for name in files:
-        image = os.path.join(root, name)
-        get_imagetext(image_directory, reader)
-
+if __name__ == "__main__":
+    main()
