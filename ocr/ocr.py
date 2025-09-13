@@ -40,23 +40,22 @@ def get_imagetext(name, image, reader):
             else:
                 right_column.append((bbox, text, prob))
 
-        # Sort by column. To resemble the structure of the real world text.
+        # Put strings into dictionaries and clean data for headers, known outliers or even typos in the packaging text
+        text_anomalies = ["JMALLFLRLR",
+                          "GEEIGNET FÜR FOLGENDE MODELLE:",
+                          "WEITERE MODELLE AUF DER ANDEREN SEITE"]
 
-        # I want to fill a dictionary at the same time
-
-        # Detect brand names, because they contain only uppercase ALPHABETICAL CHARACTERS.
-
-        # small bug in the update function
-        data = {}
+        data = []
         alpha = None
         for column in (left_column, right_column):
             for bbox, text, prob in column:
-                if text.isupper() & text.isalpha(): 
+                # JMALLFLRLR is a known typo 
+                if text.isupper() and text.isalpha() and any(text in element for element in text_anomalies) == False:
                     alpha = text
-                else:
-                    data.update({"bag": vacuumbag_name, "vacuum": text, "brand": alpha})
+                elif any(text in element for element in text_anomalies) == False:
+                    data.append({"bag": vacuumbag_name, "vacuum": text, "brand": alpha})
 
-
+        return data
         # Delete the box's headline "GEEIGNET FÜR...".
         # if vacuum_names:
         #     vacuum_names.pop(0)
