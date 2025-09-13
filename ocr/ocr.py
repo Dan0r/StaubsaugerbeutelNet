@@ -4,13 +4,17 @@ import cv2
 import sqlite3
 from easyocr import Reader
 import os
+import psycopg2
+from dotenv import load_dotenv
 
-"""
-The fnction for processing the images. 
-image_reader will make it loop through the directory with the images. It processes the images one by one.
-reader will be for the EasyOCR object, to detect the text using its .readtext-method.
-"""
-def get_imagetext(image, reader):
+def get_imagetext(name, image, reader):
+    """
+    Process text from an image of the packaging.
+    """
+
+    # Define the name of the vacuum bag. For this to work the name of the image has to have the name of the vacuum bag before the "-".
+    vacuumbag_name = name[:name.index("-")]
+
     try:
         image_processed = cv2.imread(image) 
         if image_processed is None:
@@ -37,37 +41,90 @@ def get_imagetext(image, reader):
                 right_column.append((bbox, text, prob))
 
         # Sort by column. To resemble the structure of the real world text.
-        brand_names = []
+
+        # I want to fill a dictionary at the same time
+
         # Detect brand names, because they contain only uppercase ALPHABETICAL CHARACTERS.
+
+        # small bug in the update function
+        data = {}
+        alpha = None
         for column in (left_column, right_column):
             for bbox, text, prob in column:
                 if text.isupper() & text.isalpha(): 
-                    brand_names.append(text)
+                    alpha = text
+                else:
+                    data.update({"bag": vacuumbag_name, "vacuum": text, "brand": alpha})
 
-        bag_names = []
-        # Detect names of vacuums
-        for column in (left_column, right_column):
-            for bbox, text, prob in column:
-            # Avoid brand names.
-                if text not in brand_names:
-                    bag_names.append(text)
 
         # Delete the box's headline "GEEIGNET FÜR...".
-        if bag_names:
-            bag_names.pop(0)
+        # if vacuum_names:
+        #     vacuum_names.pop(0)
 
         print(f"Finished processing: {image}.")
+
+        # # Return data
+        # for vacuum_name in vacuum_names:
+        #     data.append({"bag": vacuumbag_name,"vacuum": vacuum_name})
+
     except Exception as e:
         print(f"Error processing image: {e}.")
 
-    # Write data into an SQL-Database
+# Write data into an SQL-Database
+def post_text(vacuumbag_name, vacuum_names, brand_names, conn):
+    """Get the strings from get_imagetext and post it to a SQL Database"""
+    # Create Tables for data, if they don't exist yet.
+    create_table_vacuums_query = """
+    CREATE TABLE IF NOT EXISTS vacuums (
+    id SMALLSERIAL NOT NULL PRIMARY KEY,
+    vacuum_name VARCHAR(255),
+    bag_name VARCHAR(255)
+    );
+    """
+
+    create_table_brand_names_query = """
+    CREATE TABLE IF NOT EXISTS brands (
+    id SMALLSERIAL NOT NULL PRIMARY KEY,
+    brand_name VARCHAR(255)
+    );
+    """
+
+    insert_query_vacuums = """
+    INSERT INTO vacuums (vacuum_name, bag_name) VALUES (%s, %s);
+    """
+    data_vacuums = (vacuum_names, vacuumbag_name)
+
+    insert_query_brands = """
+    INSERT INTO brands (brand_name) VALUES (%s);
+    """
+    data_brands = (brand_names)
+
+
+
+    with conn.cursor() as cur:
+        cur.execute(create_table_vacuums_query)
+        cur.execute(insert_query_vacuums, data_vacuums)
+
+        cur.execute(create_table_brand_names_query)
+        cur.execute(insert_query_brands, data_brands)
+
+    conn.commit()
+    conn.close()
 
 
 def main():
     """Main function"""
 
-    # Initialise EasyOCR 
+    # Initialise EasyOCR and Postgres
     reader = Reader(['en', 'de'])
+    load_dotenv()
+    
+    # Open database-connection
+    try:
+        conn = psycopg2.connect(host="localhost", dbname="staub", user="postgres", port=5432, password=os.getenv("postgres-password"))
+        print("Connected to database.")
+    except:
+        print("Unable to connect to the database.")
 
     # load multiple images, that are stored in a directory called "images"
     # os.walk loads top-to-bottom
@@ -77,7 +134,11 @@ def main():
         # OCR the first image, then repeat with the next
         for name in files:
             image = os.path.join(root, name)
-            get_imagetext(image, reader)
+            data = get_imagetext(name, image, reader)
+    print(data)
+        
+        # pass data into post_text
+
 
 if __name__ == "__main__":
     main()
