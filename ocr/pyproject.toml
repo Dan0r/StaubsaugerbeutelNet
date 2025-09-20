@@ -3,7 +3,7 @@ name = "ocr"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "furukawa",email = "dendenmushi:moshimoshi"}
+    {name = "furukawa",email = "denden@outlook.de"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"

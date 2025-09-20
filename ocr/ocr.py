@@ -54,8 +54,7 @@ def get_imagetext(name, image, reader):
                     alpha = text
                 elif any(text in element for element in text_anomalies) == False:
                     data.append({"bag": vacuumbag_name, "vacuum": text, "brand": alpha})
-
-        return data
+                    print(data) 
         # Delete the box's headline "GEEIGNET FÜR...".
         # if vacuum_names:
         #     vacuum_names.pop(0)
@@ -119,23 +118,22 @@ def main():
     
     # Open database-connection
     try:
-        conn = psycopg2.connect(host="localhost", dbname="staub", user="postgres", port=5432, password=os.getenv("postgres-password"))
+        conn = psycopg2.connect(host="localhost", dbname="staub", user="furukawa", port=5432, password=os.getenv("postgres-password"))
         print("Connected to database.")
     except:
         print("Unable to connect to the database.")
 
-    # load multiple images, that are stored in a directory called "images"
-    # os.walk loads top-to-bottom
-    image_directory = '/home/furukawa/programming/staub/ocr/images/'
+    # Check if the directory exists
+    image_directory = '/home/furukawa/programming/StaubsaugerbeutelNet/ocr/images'
+    if os.path.isdir(image_directory) is True:
+        print("Image path exists")
 
     for root, dirs, files in os.walk(image_directory):
         # OCR the first image, then repeat with the next
         for name in files:
             image = os.path.join(root, name)
             data = get_imagetext(name, image, reader)
-    print(data)
-        
-        # pass data into post_text
+            print(data)        
 
 
 if __name__ == "__main__":
