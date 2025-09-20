@@ -62,7 +62,6 @@ def get_imagetext(name, image, reader):
 
         print(f"Finished processing: {image}.")
 
-        # # Return data
         # for vacuum_name in vacuum_names:
         #     data.append({"bag": vacuumbag_name,"vacuum": vacuum_name})
 
